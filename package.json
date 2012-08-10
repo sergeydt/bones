@@ -17,7 +17,8 @@
         "backbone": "0.5.3",
         "jquery": "~1.6.3",
         "optimist": "0.3.x",
-        "mirror": "0.3.x"
+        "mirror": "0.3.x",
+	"bones-mongodb": "https://github.com/sergeydt/bones-mongodb/tarball/master"
     },
 
     "scripts": {
