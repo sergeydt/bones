@@ -53,12 +53,24 @@ Backbone.sync = function(method, model, options) {
         modelJSON = JSON.stringify(modelJSON);
     }
 
+    var filter = null;
+
+    if (options.filter != null) {
+        var f = {};
+        _.each(options.filter, function (v, k) {
+            f[['__filter__', k].join('')] = v;
+        });
+        filter = decodeURIComponent($.param(f));
+    }
+
+    //console.log('filter', filter);
+
     // Default JSON-request options.
     var params = {
         url:          getUrl(model),
         type:         type,
         contentType:  'application/json',
-        data:         (modelJSON || null),
+        data:         (modelJSON || filter || null),
         dataType:     'json',
         processData:  false,
         success:      options.success,
@@ -68,3 +80,4 @@ Backbone.sync = function(method, model, options) {
     // Make the request.
     return $.ajax(params);
 };
+

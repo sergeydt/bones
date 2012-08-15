@@ -90,10 +90,31 @@ server.prototype.initializeModels = function(app) {
 
 server.prototype.loadCollection = function(req, res, next) {
     var name = Bones.utils.pluralize(req.params.collection);
+
+
+    //console.log('loadCollection', name, req.query);
+    name = 'Videos'
+    var filter = {};
+    _.each(req.query, function (v, k) {
+        var m = k.match(/__filter__(.*)/);
+        if (m) {
+            var m1 = v.match(/\/(.*)\/(.*)/);
+            if (m1) {
+                v = new RegExp(m1[1], m1[2] || '');
+            }
+            if (v === 'true') v = true;
+            filter[m[1]] = v;
+        }
+    });
+
+    //console.log('filter', filter);
+
     if (name in this.models) {
         // Pass any querystring paramaters to the collection.
         req.collection = new this.models[name]([], req.query);
+        //console.log('loadCollection', req.collection);
         req.collection.fetch({
+            filter: filter,
             success: function(collection, resp) {
                 res.send(resp, headers);
             },
@@ -154,3 +175,4 @@ server.prototype.delModel = function(req, res, next) {
         }
     });
 };
+
