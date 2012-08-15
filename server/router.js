@@ -6,7 +6,7 @@ module.exports = Backbone.Router;
 Backbone.Router.register = function(server) {
     // Add the router if it's not a server-only router.
     this.files.forEach(function(filename) {
-        if (!(/\.server\.bones$/).test(filename) && server.assets &&
+        if (!(/\.server\.bones(\.js|)$/).test(filename) && server.assets &&
             server.assets.routers.indexOf(filename) < 0) {
             server.assets.routers.push(filename);
         }
@@ -51,7 +51,7 @@ Backbone.Router.prototype._bindRoutes = function() {
 };
 
 Backbone.Router.prototype.route = function(route, name, callback) {
-    if (!_.isRegExp(route)) route = this._routeToRegExp('/' + route);
+    if (!_.isRegExp(route)) route = this._routeToRegExp(route);
     if (!_.isFunction(callback)) throw new Error("'" + name + "' is not a function in " + this);
 
     // Add route to express server.
