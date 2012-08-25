@@ -71,11 +71,15 @@ Backbone.sync = function(method, model, options) {
     var filter = null;
 
     if (options.filter != null) {
+        //filter = {filter: JSON.stringify(options.filter)}
+        filter = 'filter=' + JSON.stringify(options.filter)
+/*
         var f = {};
         _.each(options.filter, function (v, k) {
             f[['__filter__', k].join('')] = v;
         });
         filter = decodeURIComponent($.param(f));
+*/
     }
 
     //console.log('filter', filter);

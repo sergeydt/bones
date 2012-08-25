@@ -88,6 +88,24 @@ server.prototype.initializeModels = function(app) {
     this.get('/api/:collection', this.loadCollection.bind(this));
 };
 
+function reg_replace(o) {
+    _.each(o, function (v, k) {
+        switch (typeof v) {
+            case 'string':
+                var m1 = v.match(/\/(.*)\/(.*)/);
+                if (m1) v = new RegExp(m1[1], m1[2] || '');
+                if (v === 'true') v = true;
+                if (v === 'false') v = false;
+                o[k] = v;
+                break;
+            case 'number':
+                break
+            default:
+                reg_replace(v)
+        }
+    })
+}
+
 server.prototype.loadCollection = function(req, res, next) {
     var name = Bones.utils.pluralize(req.params.collection);
 
@@ -95,6 +113,16 @@ server.prototype.loadCollection = function(req, res, next) {
     //console.log('loadCollection', name, req.query);
     name = 'Videos'
     var filter = {};
+    if (req.query.filter) {
+        //console.log('000000000000000000000000000000', typeof req.query.filter, JSON.parse(req.query.filter));
+        filter = JSON.parse(req.query.filter)
+        console.log('filter before', filter);
+        reg_replace(filter)
+        console.log('filter', filter);
+
+    }
+
+/*
     _.each(req.query, function (v, k) {
         var m = k.match(/__filter__(.*)/);
         if (m) {
@@ -107,6 +135,7 @@ server.prototype.loadCollection = function(req, res, next) {
         }
     });
 
+*/
     //console.log('filter', filter);
 
     if (name in this.models) {
@@ -114,6 +143,7 @@ server.prototype.loadCollection = function(req, res, next) {
         req.collection = new this.models[name]([], req.query);
         //console.log('loadCollection', req.collection);
         req.collection.fetch({
+            isClient: true,
             filter: filter,
             success: function(collection, resp) {
                 res.send(resp, headers);
@@ -140,6 +170,7 @@ server.prototype.loadModel = function(req, res, next) {
 server.prototype.getModel = function(req, res, next) {
     if (!req.model) return next();
     req.model.fetch({
+        isClient: true,
         success: function(model, resp) {
             res.send(resp, headers);
         },
@@ -153,6 +184,7 @@ server.prototype.getModel = function(req, res, next) {
 server.prototype.saveModel = function(req, res, next) {
     if (!req.model) return next();
     req.model.save(req.body, {
+        isClient: true,
         success: function(model, resp) {
             res.send(resp, headers);
         },

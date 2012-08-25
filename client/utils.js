@@ -10,6 +10,8 @@ $(function() {
 
     Bones.server = false;
 
+    Bones.routers = {};
+
     Bones.initialize = function(kind, callback) {
         if (kind === 'model') {
             var model = callback(models);
@@ -29,8 +31,8 @@ $(function() {
     };
 
     Bones.start = function(options) {
+
         for (var k in routers) {
-            new routers[k];
             Bones.routers[k] = new routers[k];
         }
 

@@ -13,9 +13,12 @@ var mongo = require('bones-mongodb')({
     name: 'documents'
 });
 
+
+
 // Create database and assign sync method to Backbone.
 mongo.install(function(err) {
-    Backbone.sync = mongo.sync;
+    Backbone.mongosync = mongo.sync;
 });
 
 // Backbone.sync will now load and save models from a 'documents' mongo db.
+
