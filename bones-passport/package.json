@@ -1,0 +1,32 @@
+{
+  "author": {
+    "name": "Developmentseed",
+    "email": "info@developmentseed.org",
+    "url": "http://developmentseed.org"
+  },
+  "name": "bones-passport",
+  "description": "Integrate the passport authentication framework into Bones.",
+  "version": "0.0.1",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "express": "2.5.11",
+    "passport": "",
+    "passport-dummy": "0.0.1",
+    "passport-oauth": "0.1.1",
+    "passport-local": "0.1.0",
+    "passport-twitter": "0.1.0"
+  },
+  "devDependencies": {},
+  "_id": "bones-passport@0.0.1",
+  "optionalDependencies": {},
+  "_engineSupported": true,
+  "_npmVersion": "1.1.16",
+  "_nodeVersion": "v0.6.15",
+  "_defaultsLoaded": true,
+  "dist": {
+    "shasum": "16ad19529e7d59fc5c06be1985fb2f9a890f1a58"
+  },
+  "_from": "bones-passport@https://github.com/dunice-hmelev/bones-passport/tarball/master"
+}
