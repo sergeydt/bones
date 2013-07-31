@@ -9,13 +9,13 @@
   },
   "main": "./bones.js",
   "dependencies": {
-    "underscore": "1.1.x",
+    "underscore": "1.1.7",
     "express": "~2.5.4",
     "backbone": "0.5.3",
     "jquery": "~1.6.3",
-    "optimist": "0.3.x",
-    "mirror": "0.3.x",
-    "bones-mongodb": "https://github.com/sergeydt/bones-mongodb/tarball/master"
+    "optimist": "0.3.4",
+    "mirror": "0.3.3",
+    "bones-mongodb": "https://github.com/sergeydt/bones-mongodb/tarball/oxhim"
   },
   "scripts": {
     "test": "mocha -R spec",
@@ -32,8 +32,10 @@
   "_nodeVersion": "v0.6.15",
   "_defaultsLoaded": true,
   "dist": {
-    "shasum": "d71d1b68c2b31f69c9157808f9db04414584a223"
+    "shasum": "821b2ce10991e5f867735e11489598a9cfdc34ed"
   },
-  "_from": "bones@https://github.com/sergeydt/bones/tarball/master"
+  "_from": "bones@https://github.com/sergeydt/bones/tarball/oxhim",
+  "readme": "# Bones\n\nBones provides conventions for [Backbone](http://documentcloud.github.com/backbone/) applications. It allows most code to be shared on the server and the client. Bones exposes your Backbone routes as regular paths on the server so they can be accessed by non-JavaScript agents, while capable clients can enjoy the normal client-side Backbone experience.\n\n## Getting started\n\nThe [wiki](https://github.com/developmentseed/bones/wiki) contains more information\non [**Getting Started**](https://github.com/developmentseed/bones/wiki/Getting-Started)\nand on the [concepts](https://github.com/developmentseed/bones/wiki/Plugin-Architecture) in Bones.\n\n## Example Application\n\n* The [simple app example](https://github.com/developmentseed/bones/tree/master/examples/simple) is\n  a good quickstart to making a bones application.\n\n## Testing\n\nTo run the test suite, install [mocha](http://visionmedia.github.com/mocha/) and type `npm test`.\n\nCode coverages tests require [jscoverage](https://github.com/visionmedia/node-jscoverage). To generate a report run `npm run-script coverage`.\n\n## License\n\nBones is [BSD licensed](https://github.com/developmentseed/bones/raw/master/LICENSE).\n",
+  "readmeFilename": "README.md"
 }
 
