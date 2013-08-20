@@ -22,7 +22,7 @@ server.prototype.initialize = function(app) {
         this.use(new servers['Debug'](app));
     }
 
-    // The Route server provides default routes for /api/Model as well as
+    // The Route server provides default routes for /api/Model as well aski
     // the /assets/bones routes.
     this.use(new servers['Route'](app));
 

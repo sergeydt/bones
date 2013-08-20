@@ -10,7 +10,7 @@ var Backbone = module.exports = require('../shared/backbone');
 var mongo = require('bones-mongodb')({
     host: '127.0.0.1',
     port: 27017,
-    name: 'documents'
+    name: 'cooking'
 });
 
 
