@@ -15,6 +15,28 @@ core.languageProcessors = {
   javascript : require("./languages/javascript").javascript
 };
 
+// TODO its own package? Pull request to Node?
+function resolveHref(baseUrl, href) {
+  // When switching protocols, the path doesn't get canonicalized (i.e. .s and ..s are still left):
+  // https://github.com/joyent/node/issues/5453
+  var intermediate = URL.resolve(baseUrl, href);
+
+  // This canonicalizes the path, at the cost of overwriting the hash.
+  var nextStep = URL.resolve(intermediate, '#');
+
+  // So, insert the hash back in, if there was one.
+  var parsed = URL.parse(intermediate);
+  var fixed = nextStep.slice(0, -1) + (parsed.hash || '');
+
+  // Finally, fix file:/// URLs on Windows, where Node removes their drive letters:
+  // https://github.com/joyent/node/issues/5452
+  if (/^file\:\/\/\/[a-z]\:\//i.test(baseUrl) && /^file\:\/\/\//.test(fixed) && !/^file\:\/\/\/[a-z]\:\//i.test(fixed)) {
+    fixed = fixed.replace(/^file\:\/\/\//, baseUrl.substring(0, 11));
+  }
+
+  return fixed;
+}
+
 core.resourceLoader = {
   load: function(element, href, callback) {
     var ownerImplementation = element._ownerDocument.implementation;
@@ -26,7 +48,7 @@ core.resourceLoader = {
         return false;
       }
       if (url.hostname) {
-        this.download(url, this.baseUrl(element._ownerDocument), this.enqueue(element, callback, full));
+        this.download(url, element._ownerDocument._cookie, element._ownerDocument._cookieDomain, this.baseUrl(element._ownerDocument), this.enqueue(element, callback, full));
       }
       else {
         this.readFile(url.pathname, this.enqueue(element, callback, full));
@@ -66,34 +88,30 @@ core.resourceLoader = {
   },
 
   baseUrl: function(document) {
-    var baseElements = document.getElementsByTagName('base'),
-        baseUrl      = document.URL;
+    var baseElements = document.getElementsByTagName('base');
+    var baseUrl = document.URL;
 
     if (baseElements.length > 0) {
-      baseUrl = baseElements.item(0).href || baseUrl;
+      var baseHref = baseElements.item(0).href;
+      if (baseHref) {
+        baseUrl = resolveHref(baseUrl, baseHref);
+      }
     }
 
     return baseUrl;
   },
   resolve: function(document, href) {
-    if (href.match(/^\w+:\/\//)) {
-      return href;
+    // if getAttribute returns null, there is no href
+    // lets resolve to an empty string (nulls are not expected farther up)
+    if (href === null) {
+      return '';
     }
 
     var baseUrl = this.baseUrl(document);
 
-    // See RFC 2396 section 3 for this weirdness. URLs without protocol
-    // have their protocol default to the current one.
-    // http://www.ietf.org/rfc/rfc2396.txt
-    if (href.match(/^\/\//)) {
-      return baseUrl ? baseUrl.match(/^(\w+:)\/\//)[1] + href : null;
-    } else if (!href.match(/^\/[^\/]/)) {
-      href = href.replace(/^\//, "");
-    }
-
-    return URL.resolve(baseUrl, href);
+    return resolveHref(baseUrl, href);
   },
-  download: function(url, referrer, callback) {
+  download: function(url, cookie, cookieDomain, referrer, callback) {
     var path    = url.pathname + (url.search || ''),
         options = {'method': 'GET', 'host': url.hostname, 'path': path},
         request;
@@ -109,13 +127,19 @@ core.resourceLoader = {
     if (referrer) {
         request.setHeader('Referer', referrer);
     }
+    if (cookie) {
+      var host = url.host.split(':')[0];
+      if (host.indexOf(cookieDomain, host.length - cookieDomain.length) !== -1) {
+        request.setHeader('cookie', cookie);
+      }
+    }
 
     request.on('response', function (response) {
       var data = '';
       function success () {
         if ([301, 302, 303, 307].indexOf(response.statusCode) > -1) {
           var redirect = URL.resolve(url, response.headers["location"]);
-          core.resourceLoader.download(URL.parse(redirect), referrer, callback);
+          core.resourceLoader.download(URL.parse(redirect), cookie, cookieDomain, referrer, callback);
         } else {
           callback(null, data);
         }
@@ -173,7 +197,7 @@ function define(elementClass, def) {
         elem.prototype.__defineGetter__(prop, function() {
           var s = this.getAttribute(attr);
           if (n.type && n.type === 'boolean') {
-            return !!s;
+            return s !== null;
           }
           if (n.type && n.type === 'long') {
             return +s;
@@ -204,6 +228,11 @@ function define(elementClass, def) {
   tagNames.forEach(function(tag) {
     core.Document.prototype._elementBuilders[tag.toLowerCase()] = function(doc, s) {
       var el = new elem(doc, s);
+
+      if (def.elementBuilder) {
+        return def.elementBuilder(el, doc, s);
+      }
+
       return el;
     };
   });
@@ -212,11 +241,17 @@ function define(elementClass, def) {
 
 
 core.HTMLCollection = function HTMLCollection(element, query) {
+  this._keys = [];
   core.NodeList.call(this, element, query);
 };
 core.HTMLCollection.prototype = {
-  namedItem : function(name) {
-    var results = this.toArray(),
+  namedItem: function(name) {
+    // Try property shortcut; should work in most cases
+    if (Object.prototype.hasOwnProperty.call(this, name)) {
+      return this[name];
+    }
+
+    var results = this._toArray(),
         l       = results.length,
         node,
         matchingName = null;
@@ -233,8 +268,38 @@ core.HTMLCollection.prototype = {
   },
   toString: function() {
     return '[ jsdom HTMLCollection ]: contains ' + this.length + ' items';
+  },
+  _resetTo: function(array) {
+    var i, _this = this;
+
+    for (i = 0; i < this._keys.length; ++i) {
+      delete this[this._keys[i]];
+    }
+    this._keys = [];
+
+    core.NodeList.prototype._resetTo.apply(this, arguments);
+
+    function testAttr(node, attr) {
+      var val = node.getAttribute(attr);
+      if (val && !Object.prototype.hasOwnProperty.call(_this, val)) {
+        _this[val] = node;
+        _this._keys.push(val);
+      }
+    }
+    for (i = 0; i < array.length; ++i) {
+      testAttr(array[i], 'id');
+    }
+    for (i = 0; i < array.length; ++i) {
+      testAttr(array[i], 'name');
+    }
   }
 };
+Object.defineProperty(core.HTMLCollection.prototype, 'constructor', {
+  value: core.NodeList,
+  writable: true,
+  configurable: true
+});
+
 core.HTMLCollection.prototype.__proto__ = core.NodeList.prototype;
 
 core.HTMLOptionsCollection = core.HTMLCollection;
@@ -321,6 +386,7 @@ core.HTMLDocument = function HTMLDocument(options) {
   core.Document.call(this, options);
   this._referrer = options.referrer;
   this._cookie = options.cookie;
+  this._cookieDomain = options.cookieDomain || '127.0.0.1';
   this._URL = options.url || '/';
   this._documentRoot = options.documentRoot || Path.dirname(this._URL);
   this._queue = new ResourceQueue(options.deferClose);
@@ -379,7 +445,7 @@ core.HTMLDocument.prototype = {
     return this.getElementsByTagName('A');
   },
   open  : function() {
-    this._childNodes = [];
+    this._childNodes = new core.NodeList();
     this._documentElement = null;
     this._modified();
   },
@@ -459,7 +525,7 @@ core.HTMLDocument.prototype = {
     return firstChild(this.documentElement, 'HEAD');
   },
 
-  set head() { /* noop */ },
+  set head(unused) { /* noop */ },
 
   get body() {
     var body = firstChild(this.documentElement, 'BODY');
@@ -539,7 +605,7 @@ define('HTMLFormElement', {
     submit: function() {
     },
     reset: function() {
-      this.elements.toArray().forEach(function(el) {
+      this.elements._toArray().forEach(function(el) {
         el.value = el.defaultValue;
       });
     }
@@ -687,13 +753,13 @@ define('HTMLSelectElement', {
     },
 
     get selectedIndex() {
-      return this.options.toArray().reduceRight(function(prev, option, i) {
+      return this.options._toArray().reduceRight(function(prev, option, i) {
         return option.selected ? i : prev;
       }, -1);
     },
 
     set selectedIndex(index) {
-      this.options.toArray().forEach(function(option, i) {
+      this.options._toArray().forEach(function(option, i) {
         option.selected = i === index;
       });
     },
@@ -711,7 +777,7 @@ define('HTMLSelectElement', {
 
     set value(val) {
       var self = this;
-      this.options.toArray().forEach(function(option) {
+      this.options._toArray().forEach(function(option) {
         if (option.value === val) {
           option.selected = true;
         } else {
@@ -742,7 +808,7 @@ define('HTMLSelectElement', {
     },
 
     remove: function(index) {
-      var opts = this.options.toArray();
+      var opts = this.options._toArray();
       if (index >= 0 && index < opts.length) {
         var el = opts[index];
         el._parentNode.removeChild(el);
@@ -787,7 +853,7 @@ define('HTMLOptionElement', {
       return closest(this, 'FORM');
     },
     get defaultSelected() {
-      return !!this.getAttribute('selected');
+      return this.getAttribute('selected') !== null;
     },
     set defaultSelected(s) {
       if (s) this.setAttribute('selected', 'selected');
@@ -803,12 +869,32 @@ define('HTMLOptionElement', {
       this.setAttribute('value', val);
     },
     get index() {
-      return closest(this, 'SELECT').options.toArray().indexOf(this);
+      return closest(this, 'SELECT').options._toArray().indexOf(this);
     },
     get selected() {
       if (this._selected === undefined) {
         this._selected = this.defaultSelected;
       }
+
+      if (!this._selected && this.parentNode) {
+        var select = closest(this, 'SELECT');
+
+        if (select) {
+          var options = select.options;
+
+          if (options.item(0) === this && !select.hasAttribute('multiple')) {
+            var found = false, optArray = options._toArray();
+
+            for (var i = 1, l = optArray.length; i<l; i++) {
+              if (optArray[i]._selected) {
+                return false;
+              }
+            }
+            return true;
+          }
+        }
+      }
+
       return this._selected;
     },
     set selected(s) {
@@ -878,6 +964,14 @@ define('HTMLInputElement', {
       this._initDefaultChecked();
       if (checked) {
         this.setAttribute('checked', 'checked');
+        if (this.type === 'radio') {
+          var elements = this._ownerDocument.getElementsByName(this.name);
+          for (var i = 0; i < elements.length; i++) {
+            if (elements[i] !== this && elements[i].tagName === "INPUT" && elements[i].type === "radio") {
+              elements[i].checked = false;
+            }
+          }
+        }
       } else {
         this.removeAttribute('checked');
       }
@@ -902,9 +996,19 @@ define('HTMLInputElement', {
     },
     select: function() {
     },
+
+    _dispatchClickEvent: function() {
+      var event = this._ownerDocument.createEvent("HTMLEvents");
+      event.initEvent("click", true, true);
+      this.dispatchEvent(event);
+    },
+
     click: function() {
-      if (this.type === 'checkbox' || this.type === 'radio') {
+      if (this.type === 'checkbox') {
         this.checked = !this.checked;
+      }
+      else if (this.type === 'radio') {
+        this.checked = true;
       }
       else if (this.type === 'submit') {
         var form = this.form;
@@ -912,6 +1016,7 @@ define('HTMLInputElement', {
           form._dispatchSubmitEvent();
         }
       }
+      this._dispatchClickEvent();
     }
   },
   attributes: [
@@ -1083,6 +1188,27 @@ define('HTMLLIElement', {
   ]
 });
 
+define('HTMLCanvasElement', {
+  tagName: 'CANVAS',
+  attributes: [
+    'align'
+  ],
+  elementBuilder: function (element) {
+    // require node-canvas and catch the error if it blows up
+    try {
+      var canvas = new (require('canvas'))(0,0);
+      for (var attr in element) {
+        if (!canvas[attr]) {
+          canvas[attr] = element[attr];
+        }
+      }
+      return canvas;
+    } catch (e) {
+      return element;
+    }
+  }
+});
+
 define('HTMLDivElement', {
   tagName: 'DIV',
   attributes: [
@@ -1199,6 +1325,16 @@ define('HTMLAnchorElement', {
 
 define('HTMLImageElement', {
   tagName: 'IMG',
+  proto: {
+    _attrModified: function(name, value, oldVal) {
+      if (name == 'src' && value !== oldVal) {
+        core.resourceLoader.enqueue(this, function() {})();
+      }
+    },
+    get src() {
+      return core.resourceLoader.resolve(this._ownerDocument, this.getAttribute('src'));
+    }
+  },
   attributes: [
     'name',
     'align',
@@ -1208,7 +1344,7 @@ define('HTMLImageElement', {
     {prop: 'hspace', type: 'long'},
     {prop: 'isMap', type: 'boolean'},
     'longDesc',
-    'src',
+    {prop: 'src', type: 'string', read: false},
     'useMap',
     {prop: 'vspace', type: 'long'},
     {prop: 'width', type: 'long'}
@@ -1376,7 +1512,7 @@ define('HTMLTableElement', {
       if (!this._rows) {
         var table = this;
         this._rows = new core.HTMLCollection(this._ownerDocument, function() {
-          var sections = [table.tHead].concat(table.tBodies.toArray(), table.tFoot).filter(function(s) { return !!s });
+          var sections = [table.tHead].concat(table.tBodies._toArray(), table.tFoot).filter(function(s) { return !!s });
 
           if (sections.length === 0) {
             return core.mapDOMNodes(table, false, function(el) {
@@ -1385,7 +1521,7 @@ define('HTMLTableElement', {
           }
 
           return sections.reduce(function(prev, s) {
-            return prev.concat(s.rows.toArray());
+            return prev.concat(s.rows._toArray());
           }, []);
 
         });
@@ -1445,7 +1581,7 @@ define('HTMLTableElement', {
       if (this.childNodes.length === 0) {
         this.appendChild(this._ownerDocument.createElement('TBODY'));
       }
-      var rows = this.rows.toArray();
+      var rows = this.rows._toArray();
       if (index < -1 || index > rows.length) {
         throw new core.DOMException(core.INDEX_SIZE_ERR);
       }
@@ -1463,7 +1599,7 @@ define('HTMLTableElement', {
       return tr;
     },
     deleteRow: function(index) {
-      var rows = this.rows.toArray(), l = rows.length;
+      var rows = this.rows._toArray(), l = rows.length;
       if (index === -1) {
         index = l-1;
       }
@@ -1517,7 +1653,7 @@ define('HTMLTableSectionElement', {
     },
     insertRow: function(index) {
       var tr = this._ownerDocument.createElement('TR');
-      var rows = this.rows.toArray();
+      var rows = this.rows._toArray();
       if (index < -1 || index > rows.length) {
         throw new core.DOMException(core.INDEX_SIZE_ERR);
       }
@@ -1531,7 +1667,7 @@ define('HTMLTableSectionElement', {
       return tr;
     },
     deleteRow: function(index) {
-      var rows = this.rows.toArray();
+      var rows = this.rows._toArray();
       if (index === -1) {
         index = rows.length-1;
       }
@@ -1564,15 +1700,16 @@ define('HTMLTableRowElement', {
       return this._cells;
     },
     get rowIndex() {
-      return closest(this, 'TABLE').rows.toArray().indexOf(this);
+      var table = closest(this, 'TABLE');
+      return table ? table.rows._toArray().indexOf(this) : -1;
     },
 
     get sectionRowIndex() {
-      return this._parentNode.rows.toArray().indexOf(this);
+      return this._parentNode.rows._toArray().indexOf(this);
     },
     insertCell: function(index) {
       var td = this._ownerDocument.createElement('TD');
-      var cells = this.cells.toArray();
+      var cells = this.cells._toArray();
       if (index < -1 || index > cells.length) {
         throw new core.DOMException(core.INDEX_SIZE_ERR);
       }
@@ -1586,7 +1723,7 @@ define('HTMLTableRowElement', {
       return td;
     },
     deleteCell: function(index) {
-      var cells = this.cells.toArray();
+      var cells = this.cells._toArray();
       if (index === -1) {
         index = cells.length-1;
       }
@@ -1639,7 +1776,7 @@ define('HTMLTableCellElement', {
       return headings.join(' ');
     },
     get cellIndex() {
-      return closest(this, 'TR').cells.toArray().indexOf(this);
+      return closest(this, 'TR').cells._toArray().indexOf(this);
     }
   },
   attributes: [
@@ -1730,14 +1867,18 @@ define('HTMLFrameElement', {
     }, false);
   },
   proto: {
-    setAttribute: function(name, value) {
-      core.HTMLElement.prototype.setAttribute.call(this, name, value);
+    _attrModified: function(name, value, oldVal) {
+      core.HTMLElement.prototype._attrModified.call(this, name, value, oldVal);
       var self = this;
       if (name === 'name') {
+        // Remove named frame access.
+        if (oldVal) {
+          this._ownerDocument.parentWindow._frame(oldVal);
+        }
         // Set up named frame access.
-        this._ownerDocument.parentWindow.__defineGetter__(value, function () {
-          return self.contentWindow;
-        });
+        if (value) {
+          this._ownerDocument.parentWindow._frame(value, this);
+        }
       } else if (name === 'src') {
         // Page we don't fetch the page until the node is inserted. This at
         // least seems to be the way Chrome does it.
