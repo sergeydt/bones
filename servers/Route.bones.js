@@ -113,30 +113,33 @@ server.prototype.loadCollection = function(req, res, next) {
 
  //   console.log('loadCollection', name, req.query);
     if (name =='Videoes') {
-        name = 'Videos'    
+        name = 'Videos'
+    }
+    if (name =='Dishes') {
+    	name = 'Dishs'
     }
 //    if (name =='Categorieses') {
-//        name = 'Categories'    
+//        name = 'Categories'
 //    }
     var filter = {};
     var sort = {};
     var skip = null;
     var limit = null;
 	var regexp = /\'/g;
-    
+
     //console.log('filter11111111111111111111', req.query.filter);
     if (req.query.filter) {
     	//console.log('aaaa',req.query.filter);
     	filter = (req.query.msie)?JSON.parse(req.query.filter.replace(regexp, '"')):JSON.parse(req.query.filter);
         reg_replace(filter)
     }
-    
+
     //console.log('filter2', req.query.filter);
 
     if (req.query.sort) {
     	sort = (req.query.msie)?JSON.parse(req.query.sort.replace(regexp, '"')):JSON.parse(req.query.sort);
     }
-    
+
     if (req.query.skip) {
     	skip = (req.query.msie)?JSON.parse(req.query.skip.replace(regexp, '"')):JSON.parse(req.query.skip);
        // console.log('skip', skip);
@@ -146,7 +149,7 @@ server.prototype.loadCollection = function(req, res, next) {
     	limit = (req.query.msie)?JSON.parse(req.query.limit.replace(regexp, '"')):JSON.parse(req.query.limit);
         //console.log('limit', limit);
     }
-    
+
 
     if (name in this.models) {
         // Pass any querystring paramaters to the collection.

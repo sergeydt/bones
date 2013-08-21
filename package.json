@@ -32,10 +32,10 @@
   "_nodeVersion": "v0.6.15",
   "_defaultsLoaded": true,
   "dist": {
-    "shasum": "5bac6f6fa5163fa69de5b6ce20e1f7edbab52a97"
+    "shasum": "c998d43ff5c8691d1f58fea206ae1bca433b0d33"
   },
-  "_from": "https://github.com/sergeydt/bones/tarball/oxhim",
+  "_from": "https://github.com/sergeydt/bones/tarball/Cook",
   "readme": "# Bones\n\nBones provides conventions for [Backbone](http://documentcloud.github.com/backbone/) applications. It allows most code to be shared on the server and the client. Bones exposes your Backbone routes as regular paths on the server so they can be accessed by non-JavaScript agents, while capable clients can enjoy the normal client-side Backbone experience.\n\n## Getting started\n\nThe [wiki](https://github.com/developmentseed/bones/wiki) contains more information\non [**Getting Started**](https://github.com/developmentseed/bones/wiki/Getting-Started)\nand on the [concepts](https://github.com/developmentseed/bones/wiki/Plugin-Architecture) in Bones.\n\n## Example Application\n\n* The [simple app example](https://github.com/developmentseed/bones/tree/master/examples/simple) is\n  a good quickstart to making a bones application.\n\n## Testing\n\nTo run the test suite, install [mocha](http://visionmedia.github.com/mocha/) and type `npm test`.\n\nCode coverages tests require [jscoverage](https://github.com/visionmedia/node-jscoverage). To generate a report run `npm run-script coverage`.\n\n## License\n\nBones is [BSD licensed](https://github.com/developmentseed/bones/raw/master/LICENSE).\n",
   "readmeFilename": "README.md",
-  "_resolved": "https://github.com/sergeydt/bones/tarball/oxhim"
+  "_resolved": "https://github.com/sergeydt/bones/tarball/Cook"
 }
