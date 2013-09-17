@@ -46,8 +46,12 @@ _.extend(Server.prototype, Backbone.Events, {
 //		var Files = {};
 //		//this.port && this.listen(this.port, callback);
 //		if (this.port) {
+//			console.log('this.port',this.port);
+
 //			var server = this.listen(this.port, callback);
-//			io = io.listen(server);
+//			io = io.listen(this.port);
+
+////			io = io.listen(server);
 //		}
 //		io.sockets.on('connection', function (socket) {
 //			socket.on('Start', function (data) { //data contains the variables that we passed through in the html file
@@ -72,7 +76,7 @@ _.extend(Server.prototype, Backbone.Events, {
 //				fs.open("Temp/" + Name, "a", 0755, function (err, fd) {
 //					if (err) {
 //						console.log(err);
-//					} else {		
+//					} else {
 //						Files[Name]['Handler'] = fd; //We store the file handler so we can write to it later
 //						socket.emit('MoreData', {
 //							'Place': Place,
@@ -86,7 +90,7 @@ _.extend(Server.prototype, Backbone.Events, {
 //				console.log("++UPLOAD+++++++++++++++++");
 //				  var Name = data['Name'];
 //				  var tags = data['Tags'];
-//				  
+//
 //				  Files[Name]['Downloaded'] += data['Data'].length;
 //				  Files[Name]['Data'] += data['Data'];
 //				  //console.log('Files[Name]',Files[Name]);
@@ -127,7 +131,7 @@ _.extend(Server.prototype, Backbone.Events, {
 //					 socket.emit('MoreData', { 'Place' : Place, 'Percent' :  Percent});
 //				  }
 //			   });
-// 
+//
 
 
 
@@ -135,8 +139,8 @@ _.extend(Server.prototype, Backbone.Events, {
 //		});
 //		return this;
 	},
-	
-	
+
+
 
 	toString: function () {
 		if (this.port) {
@@ -152,3 +156,4 @@ Server.extend = Backbone.Router.extend;
 Server.toString = function () {
 	return '<Server ' + this.title + '>';
 };
+

@@ -9,6 +9,8 @@ server = Bones.Server.extend({});
 // process.env.port
 server.prototype.port = process.env.NODE_PORT || 3000;
 
+
+
 server.prototype.initialize = function(app) {
     this.port = app.config.port || this.port;
 
@@ -22,12 +24,14 @@ server.prototype.initialize = function(app) {
         this.use(new servers['Debug'](app));
     }
 
-    // The Route server provides default routes for /api/Model as well aski
+    // The Route server provides default routes for /api/Model as well as
     // the /assets/bones routes.
     this.use(new servers['Route'](app));
 
     // The Asset server provides each plugin's asset folder at /asset/pluginname.
     this.use(new servers['Asset'](app));
+
+
 
 
 

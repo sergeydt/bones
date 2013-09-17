@@ -13,3 +13,4 @@ var templates = Bones.plugin.templates;
 var servers = Bones.plugin.servers;
 
 var server;
+

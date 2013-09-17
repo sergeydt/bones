@@ -74,26 +74,26 @@ Backbone.sync = function(method, model, options) {
       	skip: options.skip || null,
       	msie: jQuery.browser.msie ? 1:0
     }
-    
-    //console.log('AAAAAAAAAAAAAAaa', mongo_req);
+
+    console.log('AAAAAAAAAAAAAAaa', mongo_req);
 
     mongo_req = _.map(mongo_req, function (v, k) {
         return (v != null) ? [k, '=', JSON.stringify(v)].join('') : null
     })
-    
+
 
     mongo_req  = _.filter(mongo_req, function (v) {
         return v != null;
     })
-	
+
     mongo_req = mongo_req.join('&')
-    
+
   //  mongo_req = mongo_req.replace(/"/g, '\\"');
   if (jQuery.browser.msie) {
 	  mongo_req = mongo_req.replace(/"/g, "\'");
   }
-    
-    
+
+
 
    // console.log('mongo_req', mongo_req);
    // console.log('mongo_req_real', (modelJSON || mongo_req || null));
