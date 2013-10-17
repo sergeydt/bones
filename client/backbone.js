@@ -75,7 +75,6 @@ Backbone.sync = function(method, model, options) {
       	msie: jQuery.browser.msie ? 1:0
     }
 
-    console.log('AAAAAAAAAAAAAAaa', mongo_req);
 
     mongo_req = _.map(mongo_req, function (v, k) {
         return (v != null) ? [k, '=', JSON.stringify(v)].join('') : null

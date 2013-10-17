@@ -3,7 +3,6 @@ var middleware = require('..').middleware;
 
 server = Bones.Server.extend({});
 
-//console.log('models', Bones);
 
 
 // process.env.port
